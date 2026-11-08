@@ -57,6 +57,80 @@ main
         ├── feature/auth-navigation (SOFIA)
         ├── feature/movies-favorites (SOFIA)
 
+## Stack tecnológico y sistema de diseño
+
+### Tecnologías principales
+
+- **Framework:** React 19.
+- **Build tool:** Vite 8.
+- **Lenguaje:** TypeScript 7.
+- **Enrutamiento:** React Router 7.
+- **Estilos:** Tailwind CSS v4.
+- **Componentes UI:** shadcn/ui, estilo New York.
+- **Iconografía:** Lucide React.
+- **Tipografía:** Outfit (Google Fonts).
+- **Gráficas:** Recharts.
+- **Animaciones:** Motion.
+- **Backend:** API Gateway mediante Fetch.
+- **Autenticación:** Supabase Auth.
+- **Detección de emociones:** Face-api.js, procesada localmente en el navegador.
+
+### Configuración de desarrollo
+
+- Los componentes de React deben utilizar archivos `.tsx`.
+- La lógica y utilidades deben utilizar archivos `.ts`.
+- Se utiliza TypeScript en modo estricto (`strict: true`).
+- El alias `@/` apunta a `src/`.
+- Tailwind CSS v4 se integra mediante `@tailwindcss/vite`.
+- shadcn/ui se utiliza como base de componentes reutilizables, permitiendo personalizar sus estilos y variables.
+- Los componentes generados por shadcn/ui deben conservar TypeScript.
+
+### Identidad visual de Butaca
+
+**Concepto:** una plataforma cinematográfica moderna, elegante y cálida, que conecta las películas con las emociones de las personas. La interfaz utiliza una estética oscura con inspiración cinematográfica, evitando replicar la identidad visual de plataformas existentes.
+
+#### Paleta de colores
+
+| Color | Código | Aplicación |
+|---|---|---|
+| Negro cálido | `#0f0b09` | Fondo principal |
+| Verde profundo | `#0e2520` | Superficies y secciones |
+| Verde petróleo | `#1f5656` | Color protagonista y elementos interactivos |
+| Terracota | `#dd6122` | Acentos y llamadas de atención |
+| Óxido | `#781d0d` | Elementos destacados |
+| Vino oscuro | `#5c140a` | Variaciones y estados especiales |
+| Marrón tierra | `#6d523e` | Superficies secundarias |
+| Oliva grisáceo | `#7c8075` | Texto secundario y detalles |
+
+#### Tipografía
+
+- **Familia:** Outfit.
+- **Títulos principales:** ExtraBold / Black (800–900).
+- **Subtítulos:** Bold (700–800).
+- **Encabezados de tarjetas:** Bold (700).
+- **Botones y etiquetas:** Semibold (600–700).
+- **Texto general:** Regular / Medium (400–500).
+
+La tipografía debe transmitir una apariencia geométrica, redondeada, gruesa y con presencia visual.
+
+#### Criterios de diseño
+
+- Utilizar un tema oscuro de manera predeterminada.
+- Evitar el negro puro; utilizar `#0f0b09` como fondo.
+- Priorizar el verde petróleo y el terracota como colores protagonistas.
+- Utilizar los colores complementarios con moderación.
+- Mantener contraste suficiente entre texto, fondos y elementos interactivos.
+- Utilizar esquinas redondeadas y superficies diferenciadas para tarjetas y paneles.
+- Mantener consistencia visual entre todas las páginas.
+- Respetar `prefers-reduced-motion` en las animaciones.
+- Los colores de las emociones tendrán una asignación propia y no dependerán exclusivamente de la paleta general.
+
+### Librería de componentes
+
+shadcn/ui será la base para construir componentes reutilizables como botones, tarjetas, diálogos, menús, formularios y otros elementos de interfaz.
+
+Los componentes se personalizarán para respetar la identidad visual de Butaca. No se utilizarán los colores predeterminados de shadcn/ui como identidad definitiva del proyecto.
+
 # Butaca – División de tareas del Frontend
 
 ## 1. Organización del equipo
