@@ -58,6 +58,15 @@
 
   --radius: 0.75rem;
 
+  /* Jerarquía tipográfica */
+  --weight-display: 900;
+  --weight-heading: 800;
+  --weight-subheading: 700;
+  --weight-card-title: 700;  
+  --weight-label: 600;
+  --weight-body: 400;
+  --weight-secondary: 500;
+
   /* Sidebar */
   --sidebar: #0e2520;
   --sidebar-foreground: #f5eee8;
@@ -157,12 +166,26 @@ a {
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
     @apply bg-background text-foreground;
   }
-
   html {
     @apply font-sans;
+  }
+  h1 {
+    font-weight: var(--weight-display);
+    letter-spacing: -0.04em;
+  }
+  h2 {
+    font-weight: var(--weight-heading);
+    letter-spacing: -0.03em;
+  }
+  h3,h4 {
+    font-weight: var(--weight-subheading);
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 }
