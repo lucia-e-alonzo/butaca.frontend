@@ -7,6 +7,9 @@ import {
 
 import Login from "@/pages/Login/Login";
 import DesignSystem from "@/pages/DesignSystem";
+import History from "@/pages/History";
+import Dashboard from "@/pages/Dashboard/Dashboard";
+
 import ProtectedRoute from "./ProtectedRoute";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,7 +49,7 @@ function LoginRoute() {
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Vista del sistema de diseño original */}
+      {/* Vista del sistema de diseño */}
       <Route
         path="/ui-preview"
         element={<DesignSystem />}
@@ -58,36 +61,50 @@ export default function AppRoutes() {
         element={<LoginRoute />}
       />
 
-      {/* Rutas privadas */}
+      {/* Rutas protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
+          {/* Página principal temporal */}
           <Route
             index
             element={<TemporaryPage title="Inicio" />}
           />
 
+          {/* Recomendaciones */}
           <Route
             path="/recommendations"
-            element={<TemporaryPage title="Recomendaciones" />}
+            element={
+              <TemporaryPage title="Recomendaciones" />
+            }
           />
 
+          {/* Favoritos */}
           <Route
             path="/favorites"
             element={<TemporaryPage title="Favoritos" />}
           />
 
+          {/* Historial desarrollado por Lucía */}
           <Route
             path="/history"
-            element={<TemporaryPage title="Historial" />}
+            element={<History />}
           />
 
+          {/* Compatibilidad con la ruta de Lucía */}
+          <Route
+            path="/historial"
+            element={<Navigate to="/history" replace />}
+          />
+
+          {/* Dashboard desarrollado por Lucía */}
           <Route
             path="/dashboard"
-            element={<TemporaryPage title="Dashboard" />}
+            element={<Dashboard />}
           />
         </Route>
       </Route>
 
+      {/* Redirección para rutas inexistentes */}
       <Route
         path="*"
         element={<Navigate to="/" replace />}
