@@ -1,0 +1,105 @@
+
+import type { Movie } from "./movieService";
+import { supabase } from "./supabase";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export interface Recommendation extends Movie {
+  score?: number;
+  reasons?: string[];
+}
+
+export interface RecommendationsResponse {
+  results: Recommendation[];
+  based_on: {
+    favorites: number;
+    watchlist: number;
+    progress: number;
+  };
+}
+
+export interface RecommendationOptions {
+  media_type?: "all" | "movie" | "tv";
+  language?: string;
+  limit?: number;
+}
+
+export async function getRecommendations(
+  options: RecommendationOptions = {}
+): Promise<Movie[]> {
+  if (!API_URL) {
+    throw new Error("No se configuró VITE_API_URL.");
+  }
+
+  const { data, error: sessionError } =
+    await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error("No se pudo obtener la sesión.");
+  }
+
+  const token = data.session?.access_token;
+
+  if (!token) {
+    throw new Error(
+      "Debes iniciar sesión para consultar recomendaciones."
+    );
+  }
+
+  const {
+    media_type = "all",
+    language = "es-MX",
+    limit = 20,
+  } = options;
+
+  if (!Number.isInteger(limit) || limit < 1 || limit > 40) {
+    throw new Error("El límite debe estar entre 1 y 40.");
+  }
+
+  const params = new URLSearchParams({
+    media_type,
+    language,
+    limit: String(limit),
+  });
+
+  const url =
+    `${API_URL.replace(/\/$/, "")}` +
+    `/api/v1/recommendations?${params.toString()}`;
+
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    throw new Error(
+      "No se pudo conectar con el servicio de recomendaciones."
+    );
+  }
+
+  if (!response.ok) {
+    const result: unknown = await response.json().catch(() => null);
+
+    let message = `Error del servidor: ${response.status}`;
+
+    if (
+      typeof result === "object" &&
+      result !== null &&
+      "error" in result &&
+      typeof result.error === "string"
+    ) {
+      message = result.error;
+    }
+
+    throw new Error(message);
+  }
+
+  const result =
+    (await response.json()) as RecommendationsResponse;
+
+  return result.results;
+}

@@ -6,28 +6,19 @@ import {
 } from "react-router-dom";
 
 import Login from "@/pages/Login/Login";
-import DesignSystem from "@/pages/DesignSystem";
+import Home from "@/pages/Home/Home";
+import Favorites from "@/pages/Favorites/Favorites";
+import Recommendations from "@/pages/Recommendations/Recommendations";
+
 import History from "@/pages/History";
 import Dashboard from "@/pages/Dashboard/Dashboard";
+import DesignSystem from "@/pages/DesignSystem";
 
 import ProtectedRoute from "./ProtectedRoute";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/useAuth";
 
-function TemporaryPage({ title }: { title: string }) {
-  return (
-    <section className="space-y-4">
-      <h1 className="text-3xl font-extrabold text-white">
-        {title}
-      </h1>
-
-      <p className="text-[#7c8075]">
-        Esta sección de BUTACA está en desarrollo.
-      </p>
-    </section>
-  );
-}
-
+// Evitar mostrar el login cuando ya existe una sesión.
 function LoginRoute() {
   const { user, loading } = useAuth();
 
@@ -61,50 +52,63 @@ export default function AppRoutes() {
         element={<LoginRoute />}
       />
 
-      {/* Rutas protegidas */}
+      {/* Páginas protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          {/* Página principal temporal */}
+
+          {/* Catálogo de películas */}
           <Route
             index
-            element={<TemporaryPage title="Inicio" />}
-          />
-
-          {/* Recomendaciones */}
-          <Route
-            path="/recommendations"
-            element={
-              <TemporaryPage title="Recomendaciones" />
-            }
+            element={<Home />}
           />
 
           {/* Favoritos */}
           <Route
             path="/favorites"
-            element={<TemporaryPage title="Favoritos" />}
+            element={<Favorites />}
           />
 
-          {/* Historial desarrollado por Lucía */}
+          {/* Compatibilidad con la ruta en español */}
+          <Route
+            path="/favoritos"
+            element={<Navigate to="/favorites" replace />}
+          />
+
+          {/* Recomendaciones */}
+          <Route
+            path="/recommendations"
+            element={<Recommendations />}
+          />
+
+          {/* Compatibilidad con la ruta en español */}
+          <Route
+            path="/recomendaciones"
+            element={
+              <Navigate to="/recommendations" replace />
+            }
+          />
+
+          {/* Dashboard de Lucía */}
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
+
+          {/* Historial de Lucía */}
           <Route
             path="/history"
             element={<History />}
           />
 
-          {/* Compatibilidad con la ruta de Lucía */}
           <Route
             path="/historial"
             element={<Navigate to="/history" replace />}
           />
 
-          {/* Dashboard desarrollado por Lucía */}
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
         </Route>
       </Route>
 
-      {/* Redirección para rutas inexistentes */}
+      {/* Rutas inexistentes */}
       <Route
         path="*"
         element={<Navigate to="/" replace />}

@@ -8,6 +8,14 @@ import {
   TrendingUp,
   Smile,
 } from "lucide-react"
+
+import { useEffect } from "react";
+
+import {
+  FAVORITES_CHANGED_EVENT,
+  getFavorites,
+} from "@/services/favoritesService";
+
 import {
   ResponsiveContainer,
   PieChart,
@@ -35,13 +43,7 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "year", label: "Este año" },
 ]
 
-// Datos simulados de favoritos.
-// Se reemplazarán cuando esté disponible el endpoint correspondiente.
-const MOCK_FAVORITE_OFFSETS = [
-  2, 4, 7, 11, 15, 18, 23, 29,
-  34, 40, 46, 52, 60, 75, 90, 105,
-  120, 145, 170, 195, 220, 245, 280, 320,
-]
+
 
 type TrendPoint = {
   label: string
@@ -104,8 +106,33 @@ function formatDate(date: string): string {
 }
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState<Period>("30d")
+  const [period, setPeriod] = useState<Period>("30d");
 
+  const [favoriteCount, setFavoriteCount] = useState<number>(
+    () => getFavorites().length
+  );
+
+useEffect(() => {
+  function updateFavorites() {
+    setFavoriteCount(getFavorites().length);
+  }
+
+  window.addEventListener(
+    FAVORITES_CHANGED_EVENT,
+    updateFavorites
+  );
+
+  window.addEventListener("storage", updateFavorites);
+
+  return () => {
+    window.removeEventListener(
+      FAVORITES_CHANGED_EVENT,
+      updateFavorites
+    );
+
+    window.removeEventListener("storage", updateFavorites);
+  };
+}, []);
   const currentDate = new Date()
   const currentYear = new Date().getFullYear()
 
@@ -216,9 +243,6 @@ export default function Dashboard() {
       })) satisfies RecommendationItem[]
   }, [records])
 
-  const favoriteCount = MOCK_FAVORITE_OFFSETS.filter(
-    (offset) => offset < filteredDays.length
-  ).length
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 sm:px-8 lg:px-12">
