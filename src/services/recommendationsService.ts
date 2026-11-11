@@ -81,34 +81,41 @@ export async function getRecommendations(
     );
   }
 
-if (!response.ok) {
-  if (response.status === 504) {
-    throw new Error(
-      "El servicio de recomendaciones no está disponible temporalmente. Inténtalo más tarde."
-    );
-  }
+    if (!response.ok) {
+        if (response.status === 401) {
+            throw new Error("Tu sesión ha expirado. Inicia sesión nuevamente.");
+        }
 
-  if (response.status === 401) {
-    throw new Error(
-      "Tu sesión ha expirado. Inicia sesión nuevamente."
-    );
-  }
+        if (response.status === 502) {
+            throw new Error(
+            "El servicio de recomendaciones no está disponible todavía. Vuelve a intentarlo más tarde."
+            );
+        }
 
-  const result: unknown = await response.json().catch(() => null);
+        if (response.status === 503) {
+            throw new Error(
+            "El servicio de recomendaciones se está configurando. Inténtalo de nuevo en unos minutos."
+            );
+        }
 
-  let message = `Error del servidor: ${response.status}`;
+        if (response.status === 504) {
+            throw new Error(
+            "El servicio de recomendaciones no respondió a tiempo. Inténtalo más tarde."
+            );
+        }
 
-  if (
-    typeof result === "object" &&
-    result !== null &&
-    "error" in result &&
-    typeof result.error === "string"
-  ) {
-    message = result.error;
-  }
+        const result: unknown = await response.json().catch(() => null);
 
-  throw new Error(message);
-}
+        let message = `Error del servidor: ${response.status}`;
+
+        if (
+            typeof result === "object" &&
+            result !== null &&
+            "error" in result &&
+            typeof result.error === "string"
+        ) { message = result.error; }
+        throw new Error(message);
+    }
 
   const result =
     (await response.json()) as RecommendationsResponse;
