@@ -1,44 +1,37 @@
-
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 interface PageHeaderProps {
-  title: string
-  description?: string
-  action?: ReactNode
-  eyebrow?: string
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  eyebrow?: string;
 }
 
-export function PageHeader({
-  title,
-  description,
-  action,
-  eyebrow,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, action, eyebrow }: PageHeaderProps) {
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-2">
+    <header className="mb-10 flex flex-col gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-4">
         {eyebrow && (
-          <p className="text-xs font-semibold tracking-widest text-accent uppercase">
+          <p className="flex items-center gap-3 eyebrow">
+            <span className="h-px w-8 bg-accent/60" />
             {eyebrow}
           </p>
         )}
 
-        <h1 className="text-4xl font-black uppercase tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            {title}
+        <h1 className="title-poster text-5xl text-foreground sm:text-6xl lg:text-7xl">
+          {title}
         </h1>
 
         {description && (
-          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
             {description}
           </p>
         )}
       </div>
 
       {action && (
-        <div className="flex shrink-0 items-center gap-2">
-          {action}
-        </div>
+        <div className="flex shrink-0 items-center gap-2 pb-1">{action}</div>
       )}
     </header>
-  )
+  );
 }

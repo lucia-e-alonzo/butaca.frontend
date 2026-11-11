@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 
 import MovieGrid from "@/components/movies/MovieGrid";
 import MovieDetails from "@/components/movies/MovieDetails";
+import { PageHeader } from "@/components/common/PageHeader";
 
 import type { Movie } from "@/services/movieService";
 import { getRecommendations } from "@/services/recommendationsService";
@@ -22,30 +22,23 @@ export default function Recommendations() {
     async function loadRecommendations() {
       try {
         const results = await getRecommendations();
-
         if (!active) return;
-
         setMovies(results);
         setError(null);
-            } catch (err) {
+      } catch (err) {
         if (!active) return;
-
         setMovies([]);
-
         setError(
           err instanceof Error
             ? err.message
             : "No pudimos cargar las recomendaciones."
         );
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
     loadRecommendations();
-
     return () => {
       active = false;
     };
@@ -58,99 +51,81 @@ export default function Recommendations() {
   }
 
   return (
-    <main className="space-y-8">
-      <section className="rounded-3xl border border-[#1f5656] bg-gradient-to-r from-[#0e2520] to-[#0f0b09] p-8">
-        <div className="flex items-center gap-3">
-          <Sparkles
-            size={32}
-            className="text-[#dd6122]"
-          />
+    <main className="space-y-10 sm:space-y-12">
+      <PageHeader
+        eyebrow="Personalizado para ti"
+        title="Recomendaciones"
+        description="Descubre historias que podrían interesarte. Próximamente podrás recibir recomendaciones basadas en tus emociones."
+        action={
+          <span className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+            <Sparkles className="size-4 text-accent" />
+            Según tu actividad
+          </span>
+        }
+      />
 
-          <h1 className="text-3xl font-extrabold text-white">
-            Recomendaciones para ti
-          </h1>
-        </div>
-
-        <p className="mt-4 max-w-2xl text-[#c5c5c5]">
-          Descubre historias que podrían interesarte.
-          Próximamente podrás recibir recomendaciones
-          basadas en tus emociones.
-        </p>
-      </section>
-
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">
-            Descubre nuevas historias
-          </h2>
-
-          <p className="mt-2 text-[#7c8075]">
-            Explora nuestra selección de películas.
+      {/* Loading */}
+      {loading && (
+        <div
+          role="status"
+          className="surface-card flex flex-col items-center justify-center rounded-2xl p-12 text-center sm:p-16"
+        >
+          <div className="mb-4 size-10 animate-spin rounded-full border-4 border-border border-t-accent" />
+          <p className="text-sm text-muted-foreground">
+            Cargando recomendaciones...
           </p>
         </div>
+      )}
 
-        {loading && (
-          <div
-            role="status"
-            className="rounded-xl border border-[#1f5656] bg-[#0e2520] p-10 text-center"
+      {/* Error */}
+      {!loading && error && (
+        <div
+          role="alert"
+          className="surface-card flex flex-col items-center rounded-2xl border-accent/30 p-8 text-center sm:p-12"
+        >
+          <AlertCircle className="mb-3 size-8 text-accent sm:size-9" />
+          <p className="mb-4 text-sm font-semibold text-foreground sm:text-base">
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 sm:px-5 sm:py-3"
           >
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#1f5656] border-t-[#dd6122]" />
+            <RefreshCw size={16} />
+            Intentar de nuevo
+          </button>
+        </div>
+      )}
 
-            <p className="text-white">
-              Cargando recomendaciones...
+      {/* Empty */}
+      {!loading && !error && movies.length === 0 && (
+        <div className="surface-card flex flex-col items-center rounded-2xl p-8 text-center sm:p-12">
+          <Sparkles className="mb-3 size-8 text-accent sm:size-9" />
+          <h3 className="text-lg font-bold text-foreground sm:text-xl">
+            Todavía no hay recomendaciones
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vuelve más tarde para descubrir nuevas historias.
+          </p>
+        </div>
+      )}
+
+      {/* Data */}
+      {!loading && !error && movies.length > 0 && (
+        <section className="space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Descubre nuevas historias
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Explora nuestra selección de películas.
             </p>
           </div>
-        )}
 
-        {!loading && error && (
-          <div
-            role="alert"
-            className="rounded-xl border border-[#dd6122] bg-[#0e2520] p-8 text-center"
-          >
-            <AlertCircle
-              size={36}
-              className="mx-auto mb-3 text-[#dd6122]"
-            />
-
-            <p className="mb-4 text-white">
-              {error}
-            </p>
-
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#dd6122] px-5 py-3 font-semibold text-white hover:opacity-90"
-            >
-              <RefreshCw size={18} />
-              Intentar de nuevo
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && movies.length === 0 && (
-          <div className="rounded-xl border border-[#1f5656] bg-[#0e2520] p-10 text-center">
-            <Sparkles
-              size={36}
-              className="mx-auto mb-4 text-[#dd6122]"
-            />
-
-            <h3 className="text-xl font-bold text-white">
-              Todavía no hay recomendaciones
-            </h3>
-
-            <p className="mt-2 text-[#c5c5c5]">
-              Vuelve más tarde para descubrir nuevas historias.
-            </p>
-          </div>
-        )}
-
-        {!loading && !error && movies.length > 0 && (
-          <MovieGrid
-            movies={movies}
-            onMovieClick={setSelectedMovie}
-          />
-        )}
-      </section>
+          <MovieGrid movies={movies} onMovieClick={setSelectedMovie} />
+        </section>
+      )}
 
       {selectedMovie && (
         <MovieDetails

@@ -1,4 +1,3 @@
-
 import type { Movie } from "@/services/movieService";
 import FavoriteButton from "./FavoriteButton";
 
@@ -7,10 +6,7 @@ interface MovieCardProps {
   onClick?: (movie: Movie) => void;
 }
 
-export default function MovieCard({
-  movie,
-  onClick,
-}: MovieCardProps) {
+export default function MovieCard({ movie, onClick }: MovieCardProps) {
   const posterUrl = movie.poster_path
     ? movie.poster_path.startsWith("http")
       ? movie.poster_path
@@ -31,7 +27,7 @@ export default function MovieCard({
 
   return (
     <article className="group relative w-full">
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-[#0e2520]">
+      <div className="surface-card surface-card-hover relative aspect-[2/3] overflow-hidden rounded-xl">
         <button
           type="button"
           onClick={() => onClick?.(movie)}
@@ -44,17 +40,17 @@ export default function MovieCard({
               src={posterUrl}
               alt={`Póster de ${movie.title}`}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center p-4 text-center text-sm text-[#7c8075]">
+            <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
               Póster no disponible
             </div>
           )}
         </button>
 
         {rating && (
-          <span className="pointer-events-none absolute left-2 top-2 rounded-lg bg-[#0f0b09]/90 px-2 py-1 text-xs font-bold text-white">
+          <span className="pointer-events-none absolute left-2 top-2 rounded-lg bg-background/85 px-2 py-1 text-xs font-bold text-foreground backdrop-blur-sm">
             ★ {rating}
           </span>
         )}
@@ -65,11 +61,11 @@ export default function MovieCard({
       </div>
 
       <div className="mt-3 space-y-1">
-        <h3 className="line-clamp-2 text-base font-bold text-white">
+        <h3 className="line-clamp-2 text-sm font-bold text-foreground sm:text-base">
           {movie.title}
         </h3>
 
-        <p className="text-sm text-[#7c8075]">
+        <p className="text-xs text-muted-foreground sm:text-sm">
           {mediaType}
           {movie.release_date
             ? ` · ${movie.release_date.slice(0, 4)}`

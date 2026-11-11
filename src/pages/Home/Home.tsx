@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Clapperboard, AlertCircle, RefreshCw } from "lucide-react";
 
@@ -11,7 +10,6 @@ import { getTrendingMovies } from "@/services/movieService";
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -22,24 +20,18 @@ export default function Home() {
     async function loadMovies() {
       try {
         const results = await getTrendingMovies();
-
         if (!active) return;
-
         setMovies(results.results);
         setError(null);
       } catch {
         if (!active) return;
-
         setError("No pudimos cargar las películas.");
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
     loadMovies();
-
     return () => {
       active = false;
     };
@@ -48,114 +40,111 @@ export default function Home() {
   function handleRetry() {
     setLoading(true);
     setError(null);
-    setReloadKey((current) => current + 1);
+    setReloadKey((c) => c + 1);
   }
 
+  const heroMovie = movies[0];
+
   return (
-    <main className="space-y-10 p-6 md:p-10">
-      {/* Encabezado principal */}
-      <section className="rounded-3xl border border-[#1f5656] bg-gradient-to-r from-[#0e2520] to-[#0f0b09] p-8 md:p-12">
-        <div className="mb-5 flex items-center gap-3">
-          <Clapperboard
-            size={34}
-            className="text-[#dd6122]"
-          />
+    <main className="space-y-12 sm:space-y-16">
+        {/* Hero — full-bleed, sin caja, alineado con el catálogo */}
+        <section className="relative -mx-4 overflow-hidden px-4 py-12 sm:-mx-6 sm:px-6 sm:py-16 lg:-mx-12 lg:px-12 lg:py-20">
+            {/* Backdrop */}
+            {heroMovie?.poster_path && (
+                <div
+                aria-hidden
+                className="absolute inset-0 bg-cover bg-center opacity-15 sm:opacity-20"
+                style={{
+                    backgroundImage: `url(https://image.tmdb.org/t/p/original${heroMovie.poster_path})`,
+                }}
+                />
+            )}
 
-          <span className="text-sm font-semibold uppercase tracking-widest text-[#dd6122]">
-            Bienvenido a BUTACA
-          </span>
-        </div>
+            {/* Gradiente encima */}
+            <div
+                aria-hidden
+                className="absolute inset-0"
+                style={{
+                background:
+                    "linear-gradient(120deg, hsl(var(--background)) 0%, hsl(var(--background)/0.92) 55%, hsl(var(--secondary)/0.35) 100%)",
+                }}
+            />
 
-        <h1 className="max-w-3xl text-3xl font-extrabold text-white md:text-5xl">
-          Historias que conectan con tus emociones.
-        </h1>
+            {/* Contenido — alineado al padding del main */}
+            <div className="relative z-10 flex flex-col gap-4 sm:gap-5">
+                <p className="eyebrow flex items-center gap-2">
+                <span className="h-px w-4 bg-accent/60" />
+                Tu próxima historia
+                </p>
 
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[#c5c5c5]">
-          Explora películas, descubre nuevas historias y
-          guarda tus favoritas en un solo lugar.
-        </p>
-      </section>
+                <h1 className="title-poster break-words text-5xl text-foreground sm:text-6xl lg:text-8xl">
+                BUTACA
+                </h1>
+
+                <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:text-lg">
+                Historias que conectan con tus emociones. Explora películas,
+                descubre nuevas historias y guarda tus favoritas en un solo lugar.
+                </p>
+            </div>
+        </section>
 
       {/* Catálogo */}
       <section className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">
+        <div className="space-y-2">
+          <p className="eyebrow">Catálogo</p>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Películas destacadas
           </h2>
-
-          <p className="mt-2 text-[#7c8075]">
-            Explora nuestra selección de películas.
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Explora nuestra selección de películas en tendencia.
           </p>
         </div>
 
-        {/* Estado de carga */}
+        {/* Loading */}
         {loading && (
-          <div
-            role="status"
-            className="rounded-xl border border-[#1f5656] bg-[#0e2520] p-10 text-center"
-          >
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#1f5656] border-t-[#dd6122]" />
-
-            <p className="text-white">
-              Cargando películas...
-            </p>
+          <div className="surface-card flex flex-col items-center justify-center rounded-2xl p-12 text-center sm:p-16">
+            <div className="mb-4 size-10 animate-spin rounded-full border-4 border-border border-t-accent" />
+            <p className="text-sm text-muted-foreground">Cargando películas...</p>
           </div>
         )}
 
-        {/* Estado de error */}
+        {/* Error */}
         {!loading && error && (
-          <div
-            role="alert"
-            className="rounded-xl border border-[#dd6122] bg-[#0e2520] p-8 text-center"
-          >
-            <AlertCircle
-              size={36}
-              className="mx-auto mb-3 text-[#dd6122]"
-            />
-
-            <p className="mb-4 text-white">
+          <div className="surface-card flex flex-col items-center rounded-2xl border-accent/30 p-8 text-center sm:p-12">
+            <AlertCircle className="mb-3 size-8 text-accent sm:size-9" />
+            <p className="mb-4 text-sm font-semibold text-foreground sm:text-base">
               {error}
             </p>
-
             <button
               type="button"
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#dd6122] px-5 py-3 font-semibold text-white hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 sm:px-5 sm:py-3"
             >
-              <RefreshCw size={18} />
+              <RefreshCw size={16} />
               Intentar de nuevo
             </button>
           </div>
         )}
 
-        {/* Sin resultados */}
+        {/* Empty */}
         {!loading && !error && movies.length === 0 && (
-          <div className="rounded-xl border border-[#1f5656] bg-[#0e2520] p-10 text-center">
-            <Clapperboard
-              size={36}
-              className="mx-auto mb-4 text-[#dd6122]"
-            />
-
-            <h3 className="text-xl font-bold text-white">
+          <div className="surface-card flex flex-col items-center rounded-2xl p-8 text-center sm:p-12">
+            <Clapperboard className="mb-3 size-8 text-accent sm:size-9" />
+            <h3 className="text-lg font-bold text-foreground sm:text-xl">
               No hay películas disponibles
             </h3>
-
-            <p className="mt-2 text-[#c5c5c5]">
+            <p className="mt-2 text-sm text-muted-foreground">
               Vuelve más tarde para descubrir nuevas historias.
             </p>
           </div>
         )}
 
-        {/* Películas disponibles */}
+        {/* Grid */}
         {!loading && !error && movies.length > 0 && (
-          <MovieGrid
-            movies={movies}
-            onMovieClick={setSelectedMovie}
-          />
+          <MovieGrid movies={movies} onMovieClick={setSelectedMovie} />
         )}
       </section>
 
-      {/* Ventana de detalles */}
       {selectedMovie && (
         <MovieDetails
           movie={selectedMovie}

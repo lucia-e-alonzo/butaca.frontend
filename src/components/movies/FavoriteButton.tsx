@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 
@@ -15,13 +14,8 @@ interface FavoriteButtonProps {
   onToggle?: (isFavorite: boolean) => void;
 }
 
-export default function FavoriteButton({
-  movie,
-  onToggle,
-}: FavoriteButtonProps) {
-  const [favorite, setFavorite] = useState(
-    () => isFavorite(movie)
-  );
+export default function FavoriteButton({ movie, onToggle }: FavoriteButtonProps) {
+  const [favorite, setFavorite] = useState(() => isFavorite(movie));
 
   useEffect(() => {
     function updateFavorite() {
@@ -30,39 +24,21 @@ export default function FavoriteButton({
 
     updateFavorite();
 
-    window.addEventListener(
-      FAVORITES_CHANGED_EVENT,
-      updateFavorite
-    );
-
-    window.addEventListener(
-      "storage",
-      updateFavorite
-    );
+    window.addEventListener(FAVORITES_CHANGED_EVENT, updateFavorite);
+    window.addEventListener("storage", updateFavorite);
 
     return () => {
-      window.removeEventListener(
-        FAVORITES_CHANGED_EVENT,
-        updateFavorite
-      );
-
-      window.removeEventListener(
-        "storage",
-        updateFavorite
-      );
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, updateFavorite);
+      window.removeEventListener("storage", updateFavorite);
     };
   }, [movie.id, movie.media_type]);
 
-  function handleToggle(
-    event: React.MouseEvent<HTMLButtonElement>
-  ) {
+  function handleToggle(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
 
     const updatedFavorite = toggleFavorite(movie);
-
     setFavorite(updatedFavorite);
-
     onToggle?.(updatedFavorite);
   }
 
@@ -76,19 +52,16 @@ export default function FavoriteButton({
           : `Agregar ${movie.title} a favoritos`
       }
       aria-pressed={favorite}
-      title={
+      title={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+      className={`flex size-9 items-center justify-center rounded-full border backdrop-blur-sm transition-all duration-200 hover:scale-110 sm:size-10 ${
         favorite
-          ? "Quitar de favoritos"
-          : "Agregar a favoritos"
-      }
-      className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 hover:scale-110 ${
-        favorite
-          ? "border-[#dd6122] bg-[#dd6122] text-white"
-          : "border-[#1f5656] bg-[#0e2520] text-white hover:border-[#dd6122]"
+          ? "border-accent/60 bg-accent text-accent-foreground shadow-[0_0_0_1px_hsl(var(--accent)/0.4),0_8px_24px_-8px_hsl(var(--accent)/0.6)]"
+          : "border-border/60 bg-background/70 text-foreground/80 hover:border-accent/60 hover:text-accent"
       }`}
     >
       <Heart
-        size={20}
+        size={18}
+        className="sm:size-5"
         fill={favorite ? "currentColor" : "none"}
       />
     </button>
