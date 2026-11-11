@@ -1,13 +1,14 @@
-
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Clapperboard,
-  Heart,
   Film,
-  TrendingUp,
+  Heart,
+  RefreshCw,
   Smile,
-} from "lucide-react"
+  TrendingUp,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   ResponsiveContainer,
   PieChart,
@@ -19,132 +20,167 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-} from "recharts"
+} from "recharts";
 
-import { PageHeader } from "@/components/common/PageHeader"
-import { Button } from "@/components/ui/button"
-import { EMOTIONS } from "@/lib/emotions"
-import { getMockHistory } from "@/data/mockHistory"
-import type { Emotion } from "@/types/history"
+import { PageHeader } from "@/components/common/PageHeader";
+import { Button } from "@/components/ui/button";
+import { EMOTIONS } from "@/lib/emotions";
+import type { Emotion, HistoryDay } from "@/types/history";
 
-type Period = "7d" | "30d" | "year"
+import {
+  FAVORITES_CHANGED_EVENT,
+  getFavorites,
+} from "@/services/favoritesService";
+import { getRecommendations } from "@/services/recommendationsService";
+import type { Movie } from "@/services/movieService";
+
+type Period = "7d" | "30d" | "year";
 
 const PERIODS: { value: Period; label: string }[] = [
   { value: "7d", label: "7 días" },
   { value: "30d", label: "30 días" },
   { value: "year", label: "Este año" },
-]
+];
 
-// Datos simulados de favoritos.
-// Se reemplazarán cuando esté disponible el endpoint correspondiente.
-const MOCK_FAVORITE_OFFSETS = [
-  2, 4, 7, 11, 15, 18, 23, 29,
-  34, 40, 46, 52, 60, 75, 90, 105,
-  120, 145, 170, 195, 220, 245, 280, 320,
-]
+const EMPTY_HISTORY: HistoryDay[] = [];
 
 type TrendPoint = {
-  label: string
-} & Partial<Record<Emotion, number>>
+  label: string;
+} & Partial<Record<Emotion, number>>;
 
-interface RecommendationItem {
-  id: string
-  title: string
-  emotion: Emotion
-  date: string
-  recordedAt: string
-}
-
-function buildTrendData(
-  days: ReturnType<typeof getMockHistory>,
-  period: Period
-): TrendPoint[] {
-  const buckets = new Map<string, TrendPoint>()
+function buildTrendData(days: HistoryDay[], period: Period): TrendPoint[] {
+  const buckets = new Map<string, TrendPoint>();
 
   days.forEach((day, index) => {
-    const date = new Date(`${day.date}T12:00:00`)
+    const date = new Date(`${day.date}T12:00:00`);
 
-    let label: string
+    let label: string;
 
     if (period === "year") {
-      label = date.toLocaleDateString("es-GT", {
-        month: "short",
-      })
+      label = date.toLocaleDateString("es-GT", { month: "short" });
     } else if (period === "30d") {
-      label = `Semana ${Math.floor(index / 7) + 1}`
+      label = `Semana ${Math.floor(index / 7) + 1}`;
     } else {
-      label = date.toLocaleDateString("es-GT", {
-        weekday: "short",
-      })
+      label = date.toLocaleDateString("es-GT", { weekday: "short" });
     }
 
     if (!buckets.has(label)) {
-      buckets.set(label, { label })
+      buckets.set(label, { label });
     }
 
-    const bucket = buckets.get(label)!
+    const bucket = buckets.get(label)!;
 
     day.records.forEach((record) => {
-      bucket[record.emotion] =
-        (bucket[record.emotion] ?? 0) + 1
-    })
-  })
+      bucket[record.emotion] = (bucket[record.emotion] ?? 0) + 1;
+    });
+  });
 
-  return Array.from(buckets.values())
+  return Array.from(buckets.values());
 }
 
 function formatDate(date: string): string {
-  return new Date(`${date}T12:00:00`).toLocaleDateString(
-    "es-GT",
-    {
-      day: "numeric",
-      month: "short",
-    }
-  )
+  return new Date(`${date}T12:00:00`).toLocaleDateString("es-GT", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState<Period>("30d")
+  const [period, setPeriod] = useState<Period>("30d");
 
-  const currentDate = new Date()
-  const currentYear = new Date().getFullYear()
+  // --- Historial emocional ---
+  // TODO(backend): reemplazar EMPTY_HISTORY por getHistory(period) cuando el back
+  // publique GET /api/v1/history?period=7d|30d|year. La estructura visual ya está lista.
+  const [history, setHistory] = useState<HistoryDay[]>(EMPTY_HISTORY);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
-    const allDays = useMemo(
-    () => getMockHistory(currentYear),
-    [currentYear]
-    )
+  // --- Recomendaciones (backend real) ---
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  const [recLoading, setRecLoading] = useState(true);
+  const [recError, setRecError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-    const filteredDays = useMemo(() => {
-    const currentDate = new Date()
-    const end = new Date(currentDate)
-    end.setHours(23, 59, 59, 999)
+  // --- Favoritos (localStorage por ahora) ---
+  // TODO(backend): migrar a GET /api/v1/favorites cuando el back lo publique.
+  const [favoriteCount, setFavoriteCount] = useState(
+    () => getFavorites().length
+  );
 
-    const start = new Date(currentDate)
-    start.setHours(0, 0, 0, 0)
-
-    if (period === "7d") {
-      start.setDate(start.getDate() - 6)
-    } else if (period === "30d") {
-      start.setDate(start.getDate() - 29)
-    } else {
-      start.setMonth(0, 1)
+  useEffect(() => {
+    function updateFavorites() {
+      setFavoriteCount(getFavorites().length);
     }
+    window.addEventListener(FAVORITES_CHANGED_EVENT, updateFavorites);
+    window.addEventListener("storage", updateFavorites);
+    window.addEventListener("focus", updateFavorites);
+    return () => {
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, updateFavorites);
+      window.removeEventListener("storage", updateFavorites);
+      window.removeEventListener("focus", updateFavorites);
+    };
+  }, []);
 
-    return allDays.filter((day) => {
-      const date = new Date(`${day.date}T12:00:00`)
-      return date >= start && date <= end
-    })
-  }, [allDays, period])
+  useEffect(() => {
+    let active = true;
+    async function loadRecommendations() {
+      setRecLoading(true);
+      setRecError(null);
+      try {
+        const results = await getRecommendations({
+          media_type: "all",
+          language: "es-MX",
+          limit: 5,
+        });
+        if (active) setRecommendations(results);
+      } catch (error) {
+        if (active) {
+          setRecommendations([]);
+          setRecError(
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar las recomendaciones."
+          );
+        }
+      } finally {
+        if (active) setRecLoading(false);
+      }
+    }
+    void loadRecommendations();
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
 
+  // Carga del historial: hoy queda como no-op hasta que exista el endpoint.
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      // TODO(backend): const data = await getHistory(period); setHistory(data);
+      setHistory(EMPTY_HISTORY);
+    } catch (e) {
+      setHistory(EMPTY_HISTORY);
+      setHistoryError(
+        e instanceof Error ? e.message : "No se pudo cargar el historial."
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
+
+  // --- Derivados del historial ---
   const records = useMemo(
-    () => filteredDays.flatMap((day) =>
-      day.records.map((record) => ({
-        ...record,
-        date: day.date,
-      }))
-    ),
-    [filteredDays]
-  )
+    () =>
+      history.flatMap((day) =>
+        day.records.map((record) => ({ ...record, date: day.date }))
+      ),
+    [history]
+  );
 
   const emotionCounts = useMemo(() => {
     const counts: Record<Emotion, number> = {
@@ -154,32 +190,21 @@ export default function Dashboard() {
       fearful: 0,
       disgusted: 0,
       surprised: 0,
-    }
-
-    records.forEach((record) => {
-      counts[record.emotion] += 1
-    })
-
-    return counts
-  }, [records])
+    };
+    records.forEach((r) => {
+      counts[r.emotion] += 1;
+    });
+    return counts;
+  }, [records]);
 
   const dominantEmotion = useMemo(() => {
-    const entries = Object.entries(emotionCounts) as [
-      Emotion,
-      number,
-    ][]
-
-    return entries.reduce<Emotion | null>(
-      (dominant, [emotion, count]) => {
-        if (count === 0) return dominant
-        if (!dominant || count > emotionCounts[dominant]) {
-          return emotion
-        }
-        return dominant
-      },
-      null
-    )
-  }, [emotionCounts])
+    const entries = Object.entries(emotionCounts) as [Emotion, number][];
+    return entries.reduce<Emotion | null>((dom, [em, n]) => {
+      if (n === 0) return dom;
+      if (!dom || n > emotionCounts[dom]) return em;
+      return dom;
+    }, null);
+  }, [emotionCounts]);
 
   const emotionData = useMemo(
     () =>
@@ -191,12 +216,12 @@ export default function Dashboard() {
         }))
         .filter((item) => item.value > 0),
     [emotionCounts]
-  )
+  );
 
   const trendData = useMemo(
-    () => buildTrendData(filteredDays, period),
-    [filteredDays, period]
-  )
+    () => buildTrendData(history, period),
+    [history, period]
+  );
 
   const recentRecommendations = useMemo(() => {
     return [...records]
@@ -212,13 +237,10 @@ export default function Dashboard() {
         title: record.recommendedMovie!,
         emotion: record.emotion,
         date: record.date,
-        recordedAt: record.recordedAt,
-      })) satisfies RecommendationItem[]
-  }, [records])
+      }));
+  }, [records]);
 
-  const favoriteCount = MOCK_FAVORITE_OFFSETS.filter(
-    (offset) => offset < filteredDays.length
-  ).length
+  const hasHistoryData = records.length > 0;
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 sm:px-8 lg:px-12">
@@ -241,9 +263,7 @@ export default function Dashboard() {
               <Button
                 key={item.value}
                 size="sm"
-                variant={
-                  period === item.value ? "default" : "outline"
-                }
+                variant={period === item.value ? "default" : "outline"}
                 onClick={() => setPeriod(item.value)}
               >
                 {item.label}
@@ -252,7 +272,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Dos mitades del recap */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* MUNDO EMOCIONAL */}
           <section className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6">
@@ -263,21 +282,18 @@ export default function Dashboard() {
                   Tu mundo emocional
                 </h2>
               </div>
-
               <p className="text-sm text-muted-foreground">
                 Conoce cómo se han distribuido tus emociones.
               </p>
             </div>
 
-            {/* Estadísticas emocionales */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border bg-background/50 p-4">
                 <p className="text-xs text-muted-foreground">
                   Registros emocionales
                 </p>
-
                 <p className="mt-2 text-3xl font-black tabular-nums text-foreground">
-                  {records.length}
+                  {historyLoading ? "—" : records.length}
                 </p>
               </div>
 
@@ -285,21 +301,16 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground">
                   Emoción predominante
                 </p>
-
                 <p className="mt-2 text-xl font-bold text-foreground">
                   {dominantEmotion
                     ? EMOTIONS[dominantEmotion].label
                     : "Sin registros"}
                 </p>
-
                 {dominantEmotion && (
                   <div className="mt-2 flex items-center gap-2">
                     <span
                       className="size-2.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          EMOTIONS[dominantEmotion].color,
-                      }}
+                      style={{ backgroundColor: EMOTIONS[dominantEmotion].color }}
                     />
                     <span className="text-xs text-muted-foreground">
                       {emotionCounts[dominantEmotion]} registros
@@ -337,13 +348,9 @@ export default function Dashboard() {
                           stroke="none"
                         >
                           {emotionData.map((item) => (
-                            <Cell
-                              key={item.name}
-                              fill={item.color}
-                            />
+                            <Cell key={item.name} fill={item.color} />
                           ))}
                         </Pie>
-
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "#0e2520",
@@ -351,46 +358,39 @@ export default function Dashboard() {
                             borderRadius: "10px",
                             color: "#ffffff",
                           }}
-                          formatter={(value) => [
-                            `${value} registros`,
-                            "Cantidad",
-                          ]}
+                          formatter={(value) => [`${value} registros`, "Cantidad"]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {(Object.keys(EMOTIONS) as Emotion[]).map(
-                      (emotion) => (
-                        <div
-                          key={emotion}
-                          className="flex items-center gap-2"
-                        >
-                          <span
-                            className="size-2.5 shrink-0 rounded-full"
-                            style={{
-                              backgroundColor:
-                                EMOTIONS[emotion].color,
-                            }}
-                          />
-
-                          <span className="text-xs text-muted-foreground">
-                            {EMOTIONS[emotion].label}
-                          </span>
-
-                          <span className="ml-auto text-xs font-semibold tabular-nums text-foreground">
-                            {emotionCounts[emotion]}
-                          </span>
-                        </div>
-                      )
-                    )}
+                    {(Object.keys(EMOTIONS) as Emotion[]).map((emotion) => (
+                      <div key={emotion} className="flex items-center gap-2">
+                        <span
+                          className="size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: EMOTIONS[emotion].color }}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {EMOTIONS[emotion].label}
+                        </span>
+                        <span className="ml-auto text-xs font-semibold tabular-nums text-foreground">
+                          {emotionCounts[emotion]}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </>
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">
-                  Todavía no hay registros para este período.
-                </p>
+                <div className="flex h-56 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border/60 px-6 text-center">
+                  <Activity className="mb-3 size-8 text-primary/60" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Aún no hay registros
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cuando uses la cámara, tus emociones aparecerán acá.
+                  </p>
+                </div>
               )}
             </div>
 
@@ -405,48 +405,39 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={trendData}
-                    margin={{
-                      top: 10,
-                      right: 10,
-                      left: -20,
-                      bottom: 0,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#6d523e"
-                      opacity={0.3}
-                    />
-
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "#7c8075", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fill: "#7c8075", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#0e2520",
-                        border: "1px solid #1f5656",
-                        borderRadius: "10px",
-                        color: "#ffffff",
-                      }}
-                    />
-
-                    {(Object.keys(EMOTIONS) as Emotion[]).map(
-                      (emotion) => (
+              {trendData.length > 0 ? (
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={trendData}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#6d523e"
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "#7c8075", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fill: "#7c8075", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#0e2520",
+                          border: "1px solid #1f5656",
+                          borderRadius: "10px",
+                          color: "#ffffff",
+                        }}
+                      />
+                      {(Object.keys(EMOTIONS) as Emotion[]).map((emotion) => (
                         <Line
                           key={emotion}
                           type="monotone"
@@ -457,11 +448,21 @@ export default function Dashboard() {
                           dot={false}
                           connectNulls
                         />
-                      )
-                    )}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex h-64 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border/60 px-6 text-center">
+                  <TrendingUp className="mb-3 size-8 text-primary/60" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Sin evolución todavía
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    La evolución aparecerá cuando tengas registros en el período.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -474,46 +475,100 @@ export default function Dashboard() {
                   Tu recorrido cinematográfico
                 </h2>
               </div>
-
               <p className="text-sm text-muted-foreground">
                 Las películas que Butaca te ha recomendado y las que has guardado.
               </p>
             </div>
 
-            {/* Estadísticas cinematográficas */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border bg-background/50 p-4">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Film className="size-4 text-accent" />
-                  <p className="text-xs">Películas recomendadas</p>
+                  <p className="text-xs">Recomendaciones disponibles</p>
                 </div>
-
                 <p className="mt-2 text-3xl font-black tabular-nums text-foreground">
-                  {records.filter(
-                    (record) => record.recommendedMovie
-                  ).length}
+                  {recLoading || recError ? "—" : recommendations.length}
                 </p>
               </div>
 
               <div className="rounded-lg border border-border bg-background/50 p-4">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Heart className="size-4 text-accent" />
-                  <p className="text-xs">Películas favoritas</p>
+                  <p className="text-xs">Favoritos guardados</p>
                 </div>
-
                 <p className="mt-2 text-3xl font-black tabular-nums text-foreground">
                   {favoriteCount}
                 </p>
               </div>
             </div>
 
-            {/* Películas recomendadas recientemente */}
+            {/* Recomendaciones reales del backend */}
+            <div className="space-y-4 rounded-lg border border-border bg-background/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-foreground">
+                    Recomendaciones del backend
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Sugerencias personalizadas según tu actividad.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReloadKey((v) => v + 1)}
+                  disabled={recLoading}
+                  className="rounded-lg border border-border p-2 text-foreground disabled:opacity-50"
+                  aria-label="Actualizar recomendaciones"
+                >
+                  <RefreshCw className="size-4" />
+                </button>
+              </div>
+
+              {recLoading ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Cargando recomendaciones...
+                </p>
+              ) : recError ? (
+                <div className="space-y-2 py-6 text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    No se pudieron cargar las recomendaciones
+                  </p>
+                  <p className="text-sm text-muted-foreground">{recError}</p>
+                </div>
+              ) : recommendations.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Todavía no hay recomendaciones para mostrar.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recommendations.map((movie) => (
+                    <div
+                      key={`${movie.media_type}-${movie.id}`}
+                      className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/60 p-3"
+                    >
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-secondary text-accent">
+                        <Film className="size-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {movie.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {movie.media_type === "tv" ? "Serie" : "Película"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recomendaciones recientes (del historial, cuando exista) */}
             <div className="space-y-4 rounded-lg border border-border bg-background/50 p-4">
               <div>
                 <h3 className="font-bold text-foreground">
                   Recomendaciones recientes
                 </h3>
-
                 <p className="text-xs text-muted-foreground">
                   Algunas películas recomendadas a partir de tus emociones.
                 </p>
@@ -529,18 +584,14 @@ export default function Dashboard() {
                       <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-secondary text-accent">
                         <Film className="size-6" />
                       </div>
-
                       <div className="min-w-0 flex-1 space-y-1">
                         <p className="truncate text-sm font-semibold text-foreground">
                           {movie.title}
                         </p>
-
                         <p className="text-xs text-muted-foreground">
-                          Recomendada por{" "}
-                          {EMOTIONS[movie.emotion].label.toLowerCase()}
+                          Recomendada por {EMOTIONS[movie.emotion].label.toLowerCase()}
                         </p>
                       </div>
-
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {formatDate(movie.date)}
                       </span>
@@ -548,13 +599,19 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">
-                  Todavía no hay recomendaciones para este período.
-                </p>
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 px-6 py-10 text-center">
+                  <Clapperboard className="mb-3 size-8 text-accent/60" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Todavía no hay recomendaciones por emoción
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Aparecerán cuando registres tu ánimo con la cámara.
+                  </p>
+                </div>
               )}
             </div>
 
-            {/* Nota de actividad */}
+            {/* Actividad */}
             <div className="rounded-lg border border-border bg-background/50 p-4">
               <div className="flex items-center gap-2">
                 <TrendingUp className="size-4 text-primary" />
@@ -562,25 +619,47 @@ export default function Dashboard() {
                   Tu actividad cinematográfica
                 </h3>
               </div>
-
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Has recibido{" "}
-                <span className="font-semibold text-foreground">
-                  {records.filter(
-                    (record) => record.recommendedMovie
-                  ).length}{" "}
-                  recomendaciones
-                </span>{" "}
-                durante este período y has guardado{" "}
-                <span className="font-semibold text-foreground">
-                  {favoriteCount} favoritas
-                </span>
-                .
+                {hasHistoryData ? (
+                  <>
+                    Has recibido{" "}
+                    <span className="font-semibold text-foreground">
+                      {records.filter((r) => r.recommendedMovie).length} recomendaciones
+                    </span>{" "}
+                    durante este período y has guardado{" "}
+                    <span className="font-semibold text-foreground">
+                      {favoriteCount} favoritas
+                    </span>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Aún no hay actividad registrada en este período. Tienes{" "}
+                    <span className="font-semibold text-foreground">
+                      {favoriteCount} favoritas
+                    </span>{" "}
+                    guardadas.
+                  </>
+                )}
               </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  to="/favorites"
+                  className="inline-block text-sm font-semibold text-accent hover:underline"
+                >
+                  Ver mis favoritos
+                </Link>
+                <Link
+                  to="/history"
+                  className="inline-block text-sm font-semibold text-accent hover:underline"
+                >
+                  Ir al historial
+                </Link>
+              </div>
             </div>
           </section>
         </div>
       </div>
     </main>
-  )
+  );
 }
