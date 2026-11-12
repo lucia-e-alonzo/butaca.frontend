@@ -8,6 +8,7 @@ import {
   History,
   LoaderCircle,
   ChevronLeft,
+  SquareMenu,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router";
@@ -49,7 +50,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-        className={`sidebar-surface relative flex min-h-screen flex-col border-r border-border/40 text-sidebar-foreground transition-[width,padding] duration-300 ease-out ${
+        className={`sidebar-surface relative flex h-full flex-col border-r border-border/40 text-sidebar-foreground transition-[width,padding] duration-300 ease-out ${
             collapsed ? "w-20 px-2" : "w-64 px-6"
         } py-6`}
     >
@@ -66,11 +67,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             />
         </button>
 
-        {/* Logo */}
-        <div className={`mb-10 flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-            <Clapperboard size={32} className="shrink-0 text-accent" />
+        {/* Encabezado de la sidebar */}
+        <div className={`mb-8 flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+            <SquareMenu className="size-6 shrink-0 text-accent" />
             {!collapsed && (
-            <h1 className="text-2xl font-black tracking-tight">BUTACA</h1>
+                <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Menú
+                </span>
             )}
         </div>
 

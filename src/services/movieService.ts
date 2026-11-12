@@ -180,3 +180,17 @@ export async function getMediaDetails(
 
 // Compatibilidad con el componente Home existente.
 export const getTrendingMovies = getTrending;
+
+export async function getPopularMovies(
+  page = 1,
+  language = "es-MX"
+): Promise<MediaResponse> {
+  return getPopular({ media_type: "movie", page, language });
+}
+
+export async function getPopularSeries(
+  page = 1,
+  language = "es-MX"
+): Promise<MediaResponse> {
+  return getPopular({ media_type: "tv", page, language });
+}

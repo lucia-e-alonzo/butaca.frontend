@@ -22,6 +22,7 @@ export interface RecommendationOptions {
   media_type?: "all" | "movie" | "tv";
   language?: string;
   limit?: number;
+  mood?: string;
 }
 
 export async function getRecommendations(
@@ -50,6 +51,7 @@ export async function getRecommendations(
     media_type = "all",
     language = "es-MX",
     limit = 20,
+    mood
   } = options;
 
   if (!Number.isInteger(limit) || limit < 1 || limit > 40) {
@@ -61,6 +63,7 @@ export async function getRecommendations(
     language,
     limit: String(limit),
   });
+  if (mood) params.set("mood", mood);
 
   const url =
     `${API_URL.replace(/\/$/, "")}` +

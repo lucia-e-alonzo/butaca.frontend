@@ -18,8 +18,8 @@ export function PageHeader({ title, description, action, eyebrow }: PageHeaderPr
           </p>
         )}
 
-        <h1 className="title-poster text-5xl text-foreground sm:text-6xl lg:text-7xl">
-          {title}
+        <h1 className="title-poster wrap-break-word text-4xl text-foreground hyphens-auto sm:text-5xl md:text-6xl lg:text-7xl">
+            {title}
         </h1>
 
         {description && (

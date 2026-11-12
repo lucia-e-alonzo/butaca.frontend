@@ -44,7 +44,7 @@ export default function Navbar() {
     <>
       {/* HEADER (mobile y desktop) */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2.5">
             <Clapperboard className="size-7 text-accent sm:size-8" />
@@ -53,24 +53,11 @@ export default function Navbar() {
             </span>
           </NavLink>
 
-          {/* Usuario desktop */}
+          {/* Usuario desktop*/}
             <div className="hidden items-center gap-4 md:flex">
                 <span className="max-w-48 truncate text-sm font-semibold text-foreground">
                     {user?.user_metadata?.full_name ?? user?.email ?? "Usuario"}
                 </span>
-                <button
-                    type="button"
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                    className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
-                >
-                    {loggingOut ? (
-                    <LoaderCircle size={18} className="animate-spin" />
-                    ) : (
-                    <LogOut size={18} />
-                    )}
-                    Salir
-                </button>
             </div>
 
           {/* Logout compacto mobile */}
