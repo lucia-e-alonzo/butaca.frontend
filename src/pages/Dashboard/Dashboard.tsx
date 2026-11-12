@@ -30,7 +30,7 @@ import {
   FAVORITES_CHANGED_EVENT,
   getFavorites,
 } from "@/services/favoritesService";
-import { useHistory } from "@/hooks/useHistory";
+import { useMoodHistory } from "@/hooks/useMoodHistory";
 
 type Period = "7d" | "30d" | "year";
 
@@ -105,30 +105,28 @@ export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("30d");
 
   // --- Historial (backend real) ---
-  const { entries, loading: historyLoading, error: historyError } = useHistory("30d");
+  const { entries, loading: historyLoading, error: historyError } = useMoodHistory("30d");
 
   // --- Recomendaciones: las derivamos del historial, no hace falta pedirlas aparte ---
   // El back ya guarda las recomendaciones dentro de cada HistoryEntry.
 
   // --- Favoritos (localStorage por ahora) ---
   // TODO(backend): migrar a GET /api/v1/library/favorites cuando se decida.
-  const [favoriteCount, setFavoriteCount] = useState(
-    () => getFavorites().length
-  );
+    const [favoriteCount, setFavoriteCount] = useState<number | null>(null);
 
-  useEffect(() => {
-    function updateFavorites() {
-      setFavoriteCount(getFavorites().length);
-    }
-    window.addEventListener(FAVORITES_CHANGED_EVENT, updateFavorites);
-    window.addEventListener("storage", updateFavorites);
-    window.addEventListener("focus", updateFavorites);
-    return () => {
-      window.removeEventListener(FAVORITES_CHANGED_EVENT, updateFavorites);
-      window.removeEventListener("storage", updateFavorites);
-      window.removeEventListener("focus", updateFavorites);
-    };
-  }, []);
+    useEffect(() => {
+        async function update() {
+            try {
+            const favs = await getFavorites(true);
+            setFavoriteCount(favs.length);
+            } catch {
+            setFavoriteCount(0);
+            }
+        }
+        void update();
+        window.addEventListener(FAVORITES_CHANGED_EVENT, update);
+        return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, update);
+    }, []);
 
   // --- Derivados ---
   const filteredEntries = useMemo(

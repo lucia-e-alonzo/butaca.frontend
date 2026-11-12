@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getHistory, type HistoryPeriod } from "@/services/historyService";
 import type { HistoryEntry } from "@/types/history";
 
-export function useHistory(period: HistoryPeriod = "30d") {
+export function useMoodHistory(period: HistoryPeriod = "30d") {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

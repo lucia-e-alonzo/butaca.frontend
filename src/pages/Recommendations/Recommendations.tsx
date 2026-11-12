@@ -20,6 +20,7 @@ import { getRecommendations } from "@/services/recommendationsService";
 import {
   getHistory,
   saveRecommendationForDay,
+  revokeCameraConsent,
 } from "@/services/historyService";
 import { useEmotionDetection } from "@/hooks/useEmotionDetection";
 import { EMOTIONS, toFrontendEmotion } from "@/lib/emotions";
@@ -76,6 +77,16 @@ export default function Recommendations() {
 
   const handlePermissionAccepted = () => setFlowStep("camera");
 
+  const handlePermissionCancelled = async () => {
+    // Si el usuario cancela, revocamos el consentimiento persistente (si existía).
+    try {
+      await revokeCameraConsent();
+    } catch {
+      // Silencioso: si falla (por ejemplo, porque no había consentimiento), no pasa nada.
+    }
+    setFlowStep("idle");
+  };
+
   const handleCapture = async (blob: Blob) => {
     await analyze(blob);
     setFlowStep("result");
@@ -101,7 +112,8 @@ export default function Recommendations() {
           limit: 1,
         });
         const movie = results[0];
-        if (!movie) throw new Error("No encontramos una recomendación para tu ánimo.");
+        if (!movie)
+          throw new Error("No encontramos una recomendación para tu ánimo.");
 
         await saveRecommendationForDay(historyId, mediaType, Number(movie.id), {
           title: movie.title,
@@ -137,19 +149,13 @@ export default function Recommendations() {
         eyebrow="Personalizado para ti"
         title="Recomendaciones"
         description="Analiza tu ánimo y recibe una recomendación única basada en cómo te sentís."
-        action={
-          <Button onClick={startFlow} className="gap-2">
-            <Camera className="size-4" />
-            Analizar mi ánimo
-          </Button>
-        }
       />
 
       {/* FLUJO ACTIVO */}
       {flowStep === "permission" && (
         <CameraPermission
           onAccept={handlePermissionAccepted}
-          onCancel={handleClose}
+          onCancel={handlePermissionCancelled}
         />
       )}
 
@@ -282,7 +288,9 @@ export default function Recommendations() {
         {historyLoading ? (
           <div className="surface-card rounded-2xl p-8 text-center">
             <LoaderCircle className="mx-auto mb-3 size-6 animate-spin text-accent" />
-            <p className="text-sm text-muted-foreground">Cargando historial...</p>
+            <p className="text-sm text-muted-foreground">
+              Cargando historial...
+            </p>
           </div>
         ) : historyError ? (
           <div className="surface-card rounded-2xl border-accent/30 p-6 text-center">
@@ -320,7 +328,8 @@ export default function Recommendations() {
                       <div
                         className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                         style={{
-                          backgroundColor: emotionInfo?.color ?? "var(--secondary)",
+                          backgroundColor:
+                            emotionInfo?.color ?? "var(--secondary)",
                         }}
                       >
                         <Film className="size-5 text-white" />
@@ -338,7 +347,8 @@ export default function Recommendations() {
                               ? `${emotionInfo.color}20`
                               : "var(--muted)",
                             color:
-                              emotionInfo?.color ?? "var(--muted-foreground)",
+                              emotionInfo?.color ??
+                              "var(--muted-foreground)",
                           }}
                         >
                           {entry.name}

@@ -20,7 +20,7 @@ const menuItems = [
   { name: "Recomendaciones", path: "/recommendations", icon: Sparkles },
   { name: "Favoritos", path: "/favorites", icon: Heart },
   { name: "Historial", path: "/history", icon: History },
-  { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { name: "Recap", path: "/dashboard", icon: LayoutDashboard },
 ];
 
 interface SidebarProps {

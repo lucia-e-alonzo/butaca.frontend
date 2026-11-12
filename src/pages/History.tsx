@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { EmotionHeatmap } from "@/components/history/EmotionHeatmap";
 import { EmotionLegend } from "@/components/history/EmotionLegend";
 import { DayDetail } from "@/components/history/DayDetail";
-import { useHistory } from "@/hooks/useHistory";
+import { useMoodHistory } from "@/hooks/useMoodHistory";
 
 export default function History() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const { entries, loading, error } = useHistory();
+  const { entries, loading, error } = useMoodHistory();
 
   const entriesThisYear = useMemo(
     () => entries.filter((entry) => entry.date.startsWith(String(year))),
